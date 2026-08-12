@@ -22,4 +22,9 @@ class StockMovement extends Model
     {
         return $this->belongsTo(Supplier::class);
     }
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
+    }
 }

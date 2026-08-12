@@ -19,8 +19,11 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->decimal('price_buy', 10, 2);  // Prix d'achat
             $table->decimal('price_sell', 10, 2); // Prix de vente
+            $table->decimal('price_per_kg', 10, 2)->nullable();
             $table->integer('stock_quantity')->default(0);
+            $table->enum('unit_type', ['PIECE', 'WEIGHT'])->default('PIECE');
             $table->integer('min_stock_alert')->default(5);
+            $table->string('image')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 

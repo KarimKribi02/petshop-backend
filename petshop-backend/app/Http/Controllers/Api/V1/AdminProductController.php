@@ -14,7 +14,7 @@ class AdminProductController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Product::with(['category', 'brand']);
+        $query = Product::with(['category', 'brand', 'stores']);
 
         if ($request->has('search') && !empty($request->search)) {
             $searchTerm = $request->search;
@@ -47,27 +47,55 @@ class AdminProductController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'category_id'     => ['nullable', 'exists:categories,id'],
-            'brand_id'        => ['nullable', 'exists:brands,id'],
-            'barcode'         => ['required', 'string', 'max:255', 'unique:products,barcode'],
-            'title'           => ['required', 'string', 'max:255'],
-            'description'     => ['nullable', 'string'],
-            'price_buy'       => ['required', 'numeric', 'min:0'],
-            'price_sell'      => ['required', 'numeric', 'min:0'],
-            'stock_quantity'  => ['required', 'integer', 'min:0'],
-            'min_stock_alert' => ['nullable', 'integer', 'min:0'],
-            'is_active'       => ['nullable', 'boolean'],
+            'category_id'        => ['required', 'exists:categories,id'],
+            'brand_id'           => ['nullable', 'exists:brands,id'],
+            'barcode'            => ['required', 'string', 'max:255', 'unique:products,barcode'],
+            'title'              => ['required', 'string', 'max:255'],
+            'description'        => ['nullable', 'string'],
+            'price_buy'          => ['required', 'numeric', 'min:0'],
+            'price_sell'         => ['required', 'numeric', 'min:0'],
+            'price_per_kg'       => ['nullable', 'numeric', 'min:0'],
+            'unit_type'          => ['nullable', 'string', 'in:PIECE,WEIGHT'],
+            'stock_quantity'     => ['nullable', 'integer', 'min:0'],
+            'quantity'           => ['nullable', 'integer', 'min:0'],
+            'min_stock_alert'    => ['nullable', 'integer', 'min:0'],
+            'alert_stock_level'  => ['nullable', 'integer', 'min:0'],
+            'image'              => ['nullable', 'string'],
+            'image_file'         => ['nullable', 'image', 'max:3072'], // Max 3MB
+            'is_active'          => ['nullable'],
         ]);
 
-        $validated['min_stock_alert'] = $validated['min_stock_alert'] ?? 5;
-        $validated['is_active'] = $validated['is_active'] ?? true;
+        $imagePath = $validated['image'] ?? null;
 
-        $product = Product::create($validated);
+        // Handle File Upload if an image file is selected
+        if ($request->hasFile('image_file')) {
+            $path = $request->file('image_file')->store('products', 'public');
+            $imagePath = asset('storage/' . $path);
+        }
+
+        $isActive = $request->has('is_active') ? $request->boolean('is_active') : true;
+
+        $product = Product::create([
+            'barcode'           => $validated['barcode'],
+            'title'             => $validated['title'],
+            'description'       => $validated['description'] ?? null,
+            'category_id'       => $validated['category_id'],
+            'brand_id'          => $validated['brand_id'] ?? null,
+            'stock_quantity'    => $validated['stock_quantity'] ?? $validated['quantity'] ?? 0,
+            'price_buy'         => $validated['price_buy'],
+            'price_sell'        => $validated['price_sell'],
+            'price_per_kg'      => $validated['price_per_kg'] ?? (($validated['unit_type'] ?? 'PIECE') === 'WEIGHT' ? $validated['price_sell'] : null),
+            'unit_type'         => $validated['unit_type'] ?? 'PIECE',
+            'min_stock_alert'   => $validated['min_stock_alert'] ?? $validated['alert_stock_level'] ?? 5,
+            'image'             => $imagePath,
+            'is_active'         => $isActive,
+        ]);
+
         $product->load(['category', 'brand']);
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'Produit créé avec succès.',
+            'message' => 'Produit ajouté avec succès!',
             'data'    => $product,
         ], 201);
     }
@@ -107,19 +135,49 @@ class AdminProductController extends Controller
         }
 
         $validated = $request->validate([
-            'category_id'     => ['nullable', 'exists:categories,id'],
-            'brand_id'        => ['nullable', 'exists:brands,id'],
-            'barcode'         => ['required', 'string', 'max:255', 'unique:products,barcode,' . $product->id],
-            'title'           => ['required', 'string', 'max:255'],
-            'description'     => ['nullable', 'string'],
-            'price_buy'       => ['required', 'numeric', 'min:0'],
-            'price_sell'      => ['required', 'numeric', 'min:0'],
-            'stock_quantity'  => ['required', 'integer', 'min:0'],
-            'min_stock_alert' => ['nullable', 'integer', 'min:0'],
-            'is_active'       => ['nullable', 'boolean'],
+            'category_id'        => ['nullable', 'exists:categories,id'],
+            'brand_id'           => ['nullable', 'exists:brands,id'],
+            'barcode'            => ['required', 'string', 'max:255', 'unique:products,barcode,' . $product->id],
+            'title'              => ['required', 'string', 'max:255'],
+            'description'        => ['nullable', 'string'],
+            'price_buy'          => ['required', 'numeric', 'min:0'],
+            'price_sell'         => ['required', 'numeric', 'min:0'],
+            'price_per_kg'       => ['nullable', 'numeric', 'min:0'],
+            'unit_type'          => ['nullable', 'string', 'in:PIECE,WEIGHT'],
+            'stock_quantity'     => ['nullable', 'integer', 'min:0'],
+            'quantity'           => ['nullable', 'integer', 'min:0'],
+            'min_stock_alert'    => ['nullable', 'integer', 'min:0'],
+            'alert_stock_level'  => ['nullable', 'integer', 'min:0'],
+            'image'              => ['nullable', 'string'],
+            'image_file'         => ['nullable', 'image', 'max:3072'],
+            'is_active'          => ['nullable'],
         ]);
 
-        $product->update($validated);
+        $imagePath = $validated['image'] ?? $product->image;
+
+        if ($request->hasFile('image_file')) {
+            $path = $request->file('image_file')->store('products', 'public');
+            $imagePath = asset('storage/' . $path);
+        }
+
+        $isActive = $request->has('is_active') ? $request->boolean('is_active') : $product->is_active;
+
+        $product->update([
+            'barcode'           => $validated['barcode'],
+            'title'             => $validated['title'],
+            'description'       => $validated['description'] ?? $product->description,
+            'category_id'       => $validated['category_id'] ?? $product->category_id,
+            'brand_id'          => $validated['brand_id'] ?? $product->brand_id,
+            'stock_quantity'    => $validated['stock_quantity'] ?? $validated['quantity'] ?? $product->stock_quantity,
+            'price_buy'         => $validated['price_buy'],
+            'price_sell'        => $validated['price_sell'],
+            'price_per_kg'      => $validated['price_per_kg'] ?? ((($validated['unit_type'] ?? $product->unit_type) === 'WEIGHT') ? $validated['price_sell'] : null),
+            'unit_type'         => $validated['unit_type'] ?? $product->unit_type ?? 'PIECE',
+            'min_stock_alert'   => $validated['min_stock_alert'] ?? $validated['alert_stock_level'] ?? $product->min_stock_alert,
+            'image'             => $imagePath,
+            'is_active'         => $isActive,
+        ]);
+
         $product->load(['category', 'brand']);
 
         return response()->json([

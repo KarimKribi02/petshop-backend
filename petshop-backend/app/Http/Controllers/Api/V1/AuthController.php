@@ -43,6 +43,8 @@ class AuthController extends Controller
         $token = $user->createToken("auth_token_{$roleName}")->plainTextToken;
 
         // 5. Response payload with User details, Roles & Token
+        $user->load('store:id,name,code,address');
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Connexion réussie',
@@ -51,6 +53,8 @@ class AuthController extends Controller
                     'id'          => $user->id,
                     'name'        => $user->name,
                     'email'       => $user->email,
+                    'store_id'    => $user->store_id,
+                    'store'       => $user->store,
                     'roles'       => $user->getRoleNames(), // Spatie helper -> Array d les roles
                     'permissions' => $user->getAllPermissions()->pluck('name'),
                 ],
@@ -66,6 +70,7 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         $user = $request->user();
+        $user->load('store:id,name,code,address');
 
         return response()->json([
             'status' => 'success',
@@ -73,6 +78,8 @@ class AuthController extends Controller
                 'id'          => $user->id,
                 'name'        => $user->name,
                 'email'       => $user->email,
+                'store_id'    => $user->store_id,
+                'store'       => $user->store,
                 'roles'       => $user->getRoleNames(),
                 'permissions' => $user->getAllPermissions()->pluck('name'),
             ]

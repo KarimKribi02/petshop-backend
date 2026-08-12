@@ -17,8 +17,8 @@ class UserController extends Controller
      */
     public function index(): JsonResponse
     {
-        $users = User::with('roles:id,name')
-            ->select('id', 'name', 'email', 'created_at')
+        $users = User::with(['roles:id,name', 'store:id,name,code'])
+            ->select('id', 'name', 'email', 'store_id', 'created_at')
             ->latest()
             ->get();
 
@@ -29,7 +29,7 @@ class UserController extends Controller
     }
 
     /**
-     * Store a newly created staff user and assign role
+     * Store a newly created staff user and assign role & store
      */
     public function store(Request $request): JsonResponse
     {
@@ -38,12 +38,14 @@ class UserController extends Controller
             'email'    => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6'],
             'role'     => ['required', 'string', 'in:ADMIN,CAISSIER,MAGASINIER'],
+            'store_id' => ['nullable', 'exists:stores,id'],
         ]);
 
         $user = User::create([
             'name'     => $validated['name'],
             'email'    => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'store_id' => $validated['store_id'] ?? null,
         ]);
 
         // Assign Spatie Role
@@ -52,26 +54,31 @@ class UserController extends Controller
         return response()->json([
             'status'  => 'success',
             'message' => 'Utilisateur créé avec succès!',
-            'data'    => $user->load('roles:id,name'),
+            'data'    => $user->load(['roles:id,name', 'store:id,name,code']),
         ], 201);
     }
 
     /**
-     * Update specified staff user details & role
+     * Update specified staff user details, role & store
      */
     public function update(Request $request, User $user): JsonResponse
     {
         $validated = $request->validate([
-            'name'  => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'role'  => ['required', 'string', 'in:ADMIN,CAISSIER,MAGASINIER'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'role'     => ['required', 'string', 'in:ADMIN,CAISSIER,MAGASINIER'],
             'password' => ['nullable', 'string', 'min:6'],
+            'store_id' => ['nullable', 'exists:stores,id'],
         ]);
 
         $userData = [
             'name'  => $validated['name'],
             'email' => $validated['email'],
         ];
+
+        if ($request->has('store_id')) {
+            $userData['store_id'] = $validated['store_id'];
+        }
 
         if (!empty($validated['password'])) {
             $userData['password'] = Hash::make($validated['password']);
@@ -85,7 +92,7 @@ class UserController extends Controller
         return response()->json([
             'status'  => 'success',
             'message' => 'Compte utilisateur mis à jour!',
-            'data'    => $user->load('roles:id,name'),
+            'data'    => $user->load(['roles:id,name', 'store:id,name,code']),
         ]);
     }
 
