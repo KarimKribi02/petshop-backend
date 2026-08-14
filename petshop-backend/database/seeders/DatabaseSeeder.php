@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace Database\Seeders;
 
@@ -14,51 +14,64 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Create Roles
-        $adminRole = Role::create(['name' => 'ADMIN']);
-        $caissierRole = Role::create(['name' => 'CAISSIER']);
-        $magasinierRole = Role::create(['name' => 'MAGASINIER']);
+         = Role::firstOrCreate(['name' => 'ADMIN']);
+         = Role::firstOrCreate(['name' => 'CAISSIER']);
+         = Role::firstOrCreate(['name' => 'MAGASINIER']);
 
         // 2. Create Default Admin
-        $admin = User::create([
-            'name' => 'Super Admin',
-            'email' => 'admin@petshop.ma',
-            'password' => Hash::make('password123'),
-        ]);
-        $admin->assignRole($adminRole);
+         = User::firstOrCreate(
+            ['email' => 'admin@petshop.ma'],
+            [
+                'name' => 'Super Admin',
+                'password' => Hash::make('password123'),
+            ]
+        );
+        ->assignRole();
 
         // 3. Create Default Caissier
-        $caissier = User::create([
-            'name' => 'Caissier 1',
-            'email' => 'caisse@petshop.ma',
-            'password' => Hash::make('password123'),
-        ]);
-        $caissier->assignRole($caissierRole);
+         = User::firstOrCreate(
+            ['email' => 'caisse@petshop.ma'],
+            [
+                'name' => 'Caissier 1',
+                'password' => Hash::make('password123'),
+            ]
+        );
+        ->assignRole();
 
         // 4. Create Default Magasinier
-        $magasinier = User::create([
-            'name' => 'Magasinier 1',
-            'email' => 'stock@petshop.ma',
-            'password' => Hash::make('password123'),
-        ]);
-        $magasinier->assignRole($magasinierRole);
+         = User::firstOrCreate(
+            ['email' => 'stock@petshop.ma'],
+            [
+                'name' => 'Magasinier 1',
+                'password' => Hash::make('password123'),
+            ]
+        );
+        ->assignRole();
 
         // 5. Create Sample Category & Product for Barcode Testing
-        $category = Category::create([
-            'name' => 'Alimentation Chien',
-            'slug' => 'alimentation-chien',
-            'description' => 'Croquettes et nourriture pour chiens',
-        ]);
+         = Category::firstOrCreate(
+            ['slug' => 'alimentation-chien'],
+            [
+                'name' => 'Alimentation Chien',
+                'description' => 'Croquettes et nourriture pour chiens',
+            ]
+        );
 
-        Product::create([
-            'category_id' => $category->id,
-            'barcode' => '6111234567890',
-            'title' => 'Croquettes Royal Canin 10kg',
-            'description' => 'Croquettes premium pour chien adulte',
-            'price_buy' => 350.00,
-            'price_sell' => 450.00,
-            'stock_quantity' => 20,
-            'min_stock_alert' => 5,
-            'is_active' => true,
-        ]);
+        Product::firstOrCreate(
+            ['barcode' => '6111234567890'],
+            [
+                'category_id' => ->id,
+                'title' => 'Croquettes Royal Canin 10kg',
+                'description' => 'Croquettes premium pour chien adulte',
+                'price_buy' => 350.00,
+                'price_sell' => 450.00,
+                'stock_quantity' => 20,
+                'min_stock_alert' => 5,
+                'is_active' => true,
+            ]
+        );
+
+        // 6. Seed FAQs
+        ->call(FaqSeeder::class);
     }
 }
