@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 namespace Database\Seeders;
 
@@ -71,7 +71,14 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 6. Seed FAQs
-        ->call(FaqSeeder::class);
+        // 6. Seed Categories, Brands & Products
+        $this->call([
+            CategorySeeder::class,
+            BrandSeeder::class,
+            ProductSeeder::class,
+        ]);
+
+        // 7. Seed FAQs
+        $this->call(FaqSeeder::class);
     }
 }

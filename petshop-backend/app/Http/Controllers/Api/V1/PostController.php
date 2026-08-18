@@ -10,27 +10,65 @@ use Illuminate\Support\Str;
 
 class PostController extends Controller
 {
-    /**
+        /**
      * Public / Admin List Blog Posts
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Post::latest();
+        $query = Post::latest('published_at');
+
+        if (!$request->has('include_drafts')) {
+            $query->where(function ($q) {
+                $q->where('status', 'PUBLISHED')
+                  ->orWhereNull('status');
+            });
+        }
 
         // Search Filter
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'LIKE', "%{$search}%")
-                  ->orWhere('content', 'LIKE', "%{$search}%");
+                  ->orWhere('content', 'LIKE', "%{$search}%")
+                  ->orWhere('excerpt', 'LIKE', "%{$search}%")
+                  ->orWhere('category_name', 'LIKE', "%{$search}%");
             });
         }
 
-        $posts = $query->paginate(15);
+        // Category Filter
+        if ($request->has('category') && !empty($request->category) && $request->category !== 'ALL' && $request->category !== 'Toutes les catégories') {
+            $cat = $request->category;
+            $query->where('category_name', 'LIKE', "%{$cat}%");
+        }
+
+        $perPage = (int) $request->get('per_page', 50);
+        $posts = $query->paginate($perPage);
 
         return response()->json([
             'status' => 'success',
             'data'   => $posts,
+        ]);
+    }
+
+    /**
+     * Show single Article by Slug or ID
+     */
+    public function show(Request $request, string $identifier): JsonResponse
+    {
+        $post = Post::where('slug', $identifier)
+            ->orWhere('id', $identifier)
+            ->first();
+
+        if (!$post) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Article introuvable.',
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $post,
         ]);
     }
 

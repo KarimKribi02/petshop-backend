@@ -402,6 +402,60 @@ class OrderController extends Controller
             'data'    => $order->fresh()->load(['orderItems.product', 'user', 'store']),
         ]);
     }
+
+    /**
+     * Public E-Commerce Order Tracking Endpoint
+     * Allows customer to track order status by Order Reference (e.g. OR1872984), numeric ID, or phone number.
+     */
+    public function trackWebOrder(Request $request, string $identifier): JsonResponse
+    {
+        $cleanId = trim($identifier);
+        $cleanId = ltrim($cleanId, '#');
+
+        // Extract numeric ID if formatted as OR1872980 + ID
+        $numericId = null;
+        if (preg_match('/^OR(\d+)$/i', $cleanId, $matches)) {
+            $fullNum = (int) $matches[1];
+            if ($fullNum > 1872980) {
+                $numericId = $fullNum - 1872980;
+            } else {
+                $numericId = $fullNum;
+            }
+        } elseif (is_numeric($cleanId)) {
+            $num = (int) $cleanId;
+            if ($num > 1872980) {
+                $numericId = $num - 1872980;
+            } else {
+                $numericId = $num;
+            }
+        }
+
+        $query = Order::with(['orderItems.product', 'store']);
+
+        $order = null;
+        if ($numericId) {
+            $order = (clone $query)->where('id', $numericId)->first();
+        }
+
+        if (!$order) {
+            $order = (clone $query)->where('id', $cleanId)
+                ->orWhere('order_number', $cleanId)
+                ->orWhere('customer_phone', $cleanId)
+                ->orWhere('phone', $cleanId)
+                ->first();
+        }
+
+        if (!$order) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Aucune commande trouvée pour cette référence.',
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $order,
+        ]);
+    }
+
 }
-
-

@@ -33,9 +33,16 @@ Route::prefix('v1')->group(function () {
         Route::get('/brands', [BrandController::class, 'index']);
         Route::get('/faqs', [FaqController::class, 'index']);
         Route::get('/posts', [PostController::class, 'index']);
+        Route::get('/posts/{identifier}', [PostController::class, 'show']);
+        // Categories list (accessible by all authenticated staff)
+        Route::get('/categories', [CategoryController::class, 'index']);
+        Route::get('/categories/list', [CategoryController::class, 'index']);
+
         Route::get('/stores', [StoreController::class, 'index']);
         Route::post('/check-stock', [PublicProductController::class, 'checkStock']);
         Route::post('/orders', [OrderController::class, 'storeWebOrder']);
+        Route::get('/orders/track/{identifier}', [OrderController::class, 'trackWebOrder']);
+        Route::get('/orders/{identifier}', [OrderController::class, 'trackWebOrder']);
     });
     Route::get('/shop-products', [ShopProductController::class, 'getShopProducts']);
     Route::post('/orders', [OrderController::class, 'storeWebOrder']);
@@ -76,6 +83,7 @@ Route::prefix('v1')->group(function () {
         // POS Sales Routes (CAISSIER & ADMIN only)
         Route::middleware('role:CAISSIER|ADMIN')->prefix('pos')->group(function () {
             Route::get('/products', [PosController::class, 'getPosProducts']);
+            Route::get('/categories', [CategoryController::class, 'index']);
             Route::post('/checkout', [PosController::class, 'checkout']);
         });
 
@@ -93,6 +101,10 @@ Route::prefix('v1')->group(function () {
             Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus']);
             Route::patch('/admin/orders/{order}/status', [OrderController::class, 'updateStatus']);
         });
+
+        // Categories & Stores list (accessible by all authenticated staff)
+        Route::get('/categories', [CategoryController::class, 'index']);
+        Route::get('/categories/list', [CategoryController::class, 'index']);
 
         // Stores list (accessible by all authenticated staff)
         Route::get('/stores', [StoreController::class, 'index']);
