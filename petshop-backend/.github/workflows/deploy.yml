@@ -15,13 +15,38 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
+          timeout: 60s
+          command_timeout: 15m
           script: |
+            echo "=== 1. UPDATING BACKEND REPO ==="
             cd /var/www/petshop/petshop-backend
-            git pull origin main
-            composer install --no-dev --optimize-autoloader
+            if [ -d "petshop-backend" ]; then
+              cd petshop-backend
+            fi
+            git fetch --all
+            git reset --hard origin/main
+            
+            echo "=== 2. COMPOSER DEPENDENCIES ==="
+            composer install --no-dev --optimize-autoloader --no-interaction
+            
+            echo "=== 3. DATABASE MIGRATION & CACHE OPTIMIZATION ==="
             php artisan migrate --force
-            php artisan config:clear
-            php artisan cache:clear
-            php artisan route:clear
+            php artisan optimize:clear
             php artisan optimize
-            pm2 restart petshop-api
+            
+            echo "=== 4. RESTARTING SERVICES ==="
+            # Reload PHP-FPM if running as standard PHP service
+            sudo systemctl reload php8.3-fpm 2>/dev/null || sudo systemctl reload php8.2-fpm 2>/dev/null || sudo systemctl reload php8.1-fpm 2>/dev/null || true
+            
+            # Restart PM2 process if Laravel is managed by PM2
+            if command -v pm2 &> /dev/null; then
+              pm2 restart petshop-api 2>/dev/null || \
+              pm2 restart backend 2>/dev/null || \
+              pm2 restart petshop-backend 2>/dev/null || \
+              pm2 save 2>/dev/null || true
+            fi
+            
+            # Reload Nginx
+            sudo systemctl reload nginx 2>/dev/null || sudo service nginx reload 2>/dev/null || true
+            
+            echo "=== BACKEND DEPLOYED SUCCESSFULLY ==="
