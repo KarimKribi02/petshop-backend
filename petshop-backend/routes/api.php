@@ -29,14 +29,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/products', [PublicProductController::class, 'index']);
         Route::get('/products-stock', [PublicProductController::class, 'getShopProducts']);
         Route::get('/products/{identifier}', [PublicProductController::class, 'show']);
-        Route::get('/categories', [PublicProductController::class, 'categories']);
+        Route::get('/categories', [CategoryController::class, 'index']);
+        Route::get('/categories/list', [CategoryController::class, 'index']);
         Route::get('/brands', [BrandController::class, 'index']);
         Route::get('/faqs', [FaqController::class, 'index']);
         Route::get('/posts', [PostController::class, 'index']);
         Route::get('/posts/{identifier}', [PostController::class, 'show']);
-        // Categories list (accessible by all authenticated staff)
-        Route::get('/categories', [CategoryController::class, 'index']);
-        Route::get('/categories/list', [CategoryController::class, 'index']);
 
         Route::get('/stores', [StoreController::class, 'index']);
         Route::post('/check-stock', [PublicProductController::class, 'checkStock']);
